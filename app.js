@@ -82,7 +82,6 @@
         id: Date.now().toString(36),
         tester: practice ? '(practice)' : `Version ${order}`,
         order: practice ? '' : order,
-        playsFps: $('plays-fps').checked,
         date: new Date().toISOString(),
         trials: [],
       },
@@ -302,7 +301,6 @@
   });
   $('final-new').addEventListener('click', () => {
     document.querySelectorAll('input[name="order"]').forEach(r => { r.checked = false; });
-    $('plays-fps').checked = false;
     $('setup-msg').textContent = '';
     show('setup');
   });
@@ -430,16 +428,15 @@
   $('tab-all').addEventListener('click', () => { resultsView = 'all'; renderResults(); });
   $('new-tester').addEventListener('click', () => {
     document.querySelectorAll('input[name="order"]').forEach(r => { r.checked = false; });
-    $('plays-fps').checked = false;
     $('setup-msg').textContent = '';
     show('setup');
   });
 
   function csv() {
-    const head = ['tester', 'order', 'plays_fps', 'date', 'trial', 'problem', 'version', 'delay_ms', 'reaction_ms', 'missed', 'answer', 'correct', 'false_starts_before', 'targets_shown', 'targets_hit'];
+    const head = ['tester', 'order', 'date', 'trial', 'problem', 'version', 'delay_ms', 'reaction_ms', 'missed', 'answer', 'correct', 'false_starts_before', 'targets_shown', 'targets_hit'];
     const q = v => /[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v);
     const lines = rowsFor(currentSessions()).map(({ s, t, i }) => [
-      s.tester, s.order ?? '', s.playsFps, s.date, i + 1, t.problemName, t.version === 'before' ? 'current' : 'redesign',
+      s.tester, s.order ?? '', s.date, i + 1, t.problemName, t.version === 'before' ? 'current' : 'redesign',
       t.delayMs, t.reactionMs ?? '', t.missed, t.answer, t.correct, t.falseStartsBefore, t.targets ?? '', t.targetHits ?? '',
     ].map(q).join(','));
     return [head.join(','), ...lines].join('\n');

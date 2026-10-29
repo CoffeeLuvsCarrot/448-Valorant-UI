@@ -15,7 +15,7 @@ You can also download the files and double-click `index.html`. It needs no insta
 
 ## Running a session
 1. Open the testing link in full screen (**F11** on Windows, **Ctrl+Cmd+F** on Mac).
-2. Pick **Version A** or **Version B**: 1st tester A, 2nd B, 3rd A, and so on. Tick the box if the tester plays FPS games regularly.
+2. Pick **Version A** or **Version B**: 1st tester A, 2nd B, 3rd A, and so on.
 3. The tester reads the **To tester** rules on their own. Researchers don't explain anything, so every tester gets the same instructions.
 4. Run the **Practice round** (not saved), then press **Start test**.
 5. When part 1 ends, the spike rules page appears. The tester reads it and presses **Space** to start part 2.
