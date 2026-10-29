@@ -10,6 +10,7 @@ Both parts run on one page, one after the other.
 ## Links
 - **Testing link:** https://coffeeluvscarrot.github.io/448-Valorant-UI/ (open in Chrome or Edge)
 - **Figma:** https://www.figma.com/design/ibswUleEnLIpKyHOHzaCC1/Valorant-HUD-Redesign?node-id=3-7&t=4q6VZOjZmuOJPoyu-1
+  - Click the **Expand UI** icon at the top left to see every page. Click **Present** at the top right to play the prototype.
 
 You can also download the files and double-click `index.html`. It needs no install or internet.
 
@@ -17,7 +18,7 @@ You can also download the files and double-click `index.html`. It needs no insta
 1. Open the testing link in full screen (**F11** on Windows, **Ctrl+Cmd+F** on Mac).
 2. Pick **Version A** or **Version B**: 1st tester A, 2nd B, 3rd A, and so on.
 3. The tester reads the **To tester** rules on their own. Researchers don't explain anything, so every tester gets the same instructions.
-4. Run the **Practice round** (not saved), then press **Start test**.
+4. Press **Start test**.
 5. When part 1 ends, the spike rules page appears. The tester reads it and presses **Space** to start part 2.
 6. The last screen shows the results of both parts.
 
