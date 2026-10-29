@@ -13,10 +13,7 @@ Design file and demo: https://www.figma.com/design/ibswUleEnLIpKyHOHzaCC1/Valora
 The test images are in the `frames/` folder.
 
 ## Run it
-**Online with GitHub Pages:**
-1. In this repo, go to **Settings → Pages**.
-2. Under **Build and deployment**, set **Source** to **Deploy from a branch**, pick the **main** branch and the **/ (root)** folder, and click **Save**.
-3. After a minute or two the page shows the link: `https://<username>.github.io/<repo-name>/`. Open it in Chrome or Edge to run the test.
+**Testing link:** https://coffeeluvscarrot.github.io/448-Valorant-UI/ (open in Chrome or Edge)
 
 **On your computer:** download the files and double-click `index.html`. It needs no install or internet.
 
