@@ -1,4 +1,5 @@
-// Spike decision test: show a spike screenshot, the tester presses F (defuse) or J (too late).
+// Spike decision test: show a spike screenshot, the tester presses Space once they've decided,
+// then answers 1 (defuse) or 2 (too late).
 // Runs right after the HUD reaction test (app.js starts it) with its own rules page.
 // Measures decision time and accuracy for the current HUD vs the redesign.
 window.SpikeTest = (() => {
@@ -37,7 +38,7 @@ window.SpikeTest = (() => {
     let queue = buildOrderA().map(([id, v]) => ({ s: byId[id], version: order === 'B' ? flip(v) : v }));
     if (practice) queue = shuffle(queue.slice()).slice(0, 2);
     run = { practice, order, queue, total: queue.length, trials: [], phase: 'ready', done };
-    $('sp-intro-count').textContent = `${practice ? 'Practice · ' : ''}Part 2 of 2 · ${queue.length} trials`;
+    $('sp-intro-count').textContent = `${practice ? 'Practice · ' : ''}Part 2 of 3 · ${queue.length} trials`;
     show('sp-intro');
   }
 
@@ -65,6 +66,22 @@ window.SpikeTest = (() => {
         if (CFG.timeoutMs) run.timer = setTimeout(() => record(null, null), CFG.timeoutMs);
       });
     }, CFG.fixationMs);
+  }
+
+  function decided(t) {
+    clearTimeout(run.timer);
+    run.decidedAt = t;
+    run.phase = 'question';
+    show('sp-question');
+  }
+
+  function answer(choice) {
+    const c = run.current;
+    run.trials.push({
+      timeLeft: c.s.timeLeft, version: c.version, answer: c.s.answer, choice,
+      ms: Math.round(run.decidedAt - run.onset), correct: choice === c.s.answer,
+    });
+    nextScreen();
   }
 
   function record(choice, t) {
@@ -114,7 +131,13 @@ window.SpikeTest = (() => {
     if (!run) return;
     if (e.key === 'Escape') { run.queue = []; return finish(); }
     if (run.phase === 'ready' && (e.code === 'Space' || e.key === 'Enter')) { e.preventDefault(); if (!e.repeat) startTrial(); return; }
-    if (run.phase === 'deciding' && (e.code === 'KeyF' || e.code === 'KeyJ')) record(e.code === 'KeyF' ? 'defuse' : 'late', performance.now());
+    if (run.phase === 'deciding' && e.code === 'Space') { e.preventDefault(); if (!e.repeat) decided(e.timeStamp); return; }
+    if (run.phase === 'question' && (e.key === '1' || e.key === '2')) answer(e.key === '1' ? 'defuse' : 'late');
+  });
+
+  $('sp-answers').addEventListener('click', e => {
+    const b = e.target.closest('button[data-choice]');
+    if (b && run && run.phase === 'question') answer(b.dataset.choice);
   });
 
   return { start, images, tableHtml, copyText };

@@ -73,15 +73,19 @@ window.HUD_TEST = {
       id: 'ability',
       name: 'Ability',
       answer: 'Ability ready',
+      // Redesign only: the glow and "E READY" label fade after fadeMs; the light blue bar stays.
+      fadeMs: 2000,
       before: { normal: 'frames/ability-before-normal.jpg', warning: 'frames/ability-before-warning.jpg' },
-      after:  { normal: 'frames/ability-after-normal.jpg',  warning: 'frames/ability-after-warning.jpg' },
+      after:  { normal: 'frames/ability-after-normal.jpg',  warning: 'frames/ability-after-warning.jpg', faded: 'frames/ability-after-faded.jpg' },
     },
     {
       id: 'map',
       name: 'Map / Spot Enemy',
       answer: 'Enemy spotted',
+      // Redesign only: the orange minimap edge and the callout fade after fadeMs; the enemy dots stay.
+      fadeMs: 2000,
       before: { normal: 'frames/map-before-normal.jpg', warning: 'frames/map-before-warning.jpg' },
-      after:  { normal: 'frames/map-after-normal.jpg',  warning: 'frames/map-after-warning.jpg' },
+      after:  { normal: 'frames/map-after-normal.jpg',  warning: 'frames/map-after-warning.jpg', faded: 'frames/map-after-faded.jpg' },
     },
   ],
 };

@@ -36,13 +36,11 @@
             <li>Then pick what you noticed (keys <kbd>1</kbd>–<kbd>5</kbd> or click).</li>
           </ol>
           <p class="muted">Pressing Space too early counts as a false start, and that trial starts again.</p>
-          <p class="muted">After this part, a second part on the spike timer starts with its own rules page.</p>
+          <p class="muted">After this part, a second part on the spike timer starts with its own rules page, then a few short questions.</p>
         </div>
 
         <div class="actions">
           <button id="start" type="submit" class="primary">Start test</button>
-          <button id="practice" type="button">Practice round</button>
-          <button id="view-results" type="button">View saved results</button>
         </div>
         <p id="setup-msg" class="msg" role="status"></p>
       </form>
@@ -54,6 +52,7 @@
     <img id="frame-normal" class="frame" alt="" draggable="false">
     <img id="frame-mid" class="frame" alt="" draggable="false" hidden>
     <img id="frame-warning" class="frame" alt="" draggable="false" hidden>
+    <img id="frame-faded" class="frame faded" alt="" draggable="false">
         <div id="trial-count" class="count"></div>
     <div class="target-anchor"><div id="target" class="target" hidden></div></div>
     <div id="flash" class="flash" hidden></div>
@@ -88,9 +87,9 @@
         <ol>
           <li>You are about to defuse the spike. A defuse takes 7 seconds.</li>
           <li>A screenshot will appear. Decide as fast as you can:</li>
-          <li>Press <kbd>F</kbd> if you can still defuse in time, or <kbd>J</kbd> if it's too late and you should save.</li>
+          <li>Press <kbd>Space</kbd> as soon as you've decided. Then pick <kbd>1</kbd> if you can still defuse in time, or <kbd>2</kbd> if it's too late and you should save.</li>
         </ol>
-        <p class="muted">Keep one finger on F and one on J. There is no time limit, but answer as fast as you can.</p>
+        <p class="muted">There is no time limit, but press Space as fast as you can.</p>
       </div>
       <p class="muted">Press <kbd>Space</kbd> to start.</p>
     </div>
@@ -100,7 +99,7 @@
     <div class="panel center">
       <p id="sp-next-count" class="eyebrow"></p>
       <h2>Ready?</h2>
-      <p class="lead"><kbd>F</kbd> = I can defuse &nbsp;·&nbsp; <kbd>J</kbd> = too late</p>
+      <p class="lead">Press <kbd>Space</kbd> as soon as you've decided if you can still defuse.</p>
       <p class="muted">Press <kbd>Space</kbd> to start.</p>
     </div>
   </section>
@@ -108,8 +107,19 @@
   <section id="sp-trial" class="screen" hidden>
     <img id="sp-frame" class="frame" alt="" draggable="false" hidden>
     <div id="sp-trial-count" class="count"></div>
-    <div class="hint"><kbd>F</kbd> defuse · <kbd>J</kbd> too late</div>
+    <div class="hint"><kbd>Space</kbd> when you've decided</div>
     <div id="sp-flash" class="flash" hidden></div>
+  </section>
+
+  <section id="sp-question" class="screen panel-screen" hidden>
+    <div class="panel">
+      <p class="eyebrow">Got it</p>
+      <h2>Can you still defuse?</h2>
+      <div id="sp-answers" class="answers">
+        <button type="button" data-choice="defuse"><kbd>1</kbd>Yes, I can defuse</button>
+        <button type="button" data-choice="late"><kbd>2</kbd>No, it's too late</button>
+      </div>
+    </div>
   </section>
 
   <!-- End of test: time and accuracy -->
@@ -121,42 +131,22 @@
       <div class="table-wrap"><table id="final-table"></table></div>
       <h2>Part 2 · Spike</h2>
       <div class="table-wrap"><table id="sp-final-table"></table></div>
+      <h2>Part 3 · Questions</h2>
+      <div class="table-wrap"><table id="sv-final-table"></table></div>
       <div class="actions">
         <button id="copy-final" class="primary">Copy HUD rows for Google Sheets</button>
         <button id="copy-spike" class="primary">Copy spike row for Google Sheets</button>
+        <button id="copy-survey" class="primary">Copy answers for Google Sheets</button>
         <button id="final-new">Next tester</button>
       </div>
       <p id="final-msg" class="msg" role="status"></p>
     </div>
   </section>
 
-  <!-- Results -->
-  <section id="results" class="screen panel-screen" hidden>
-    <div class="panel wide">
-      <p class="eyebrow">Results</p>
-      <h1 id="results-title">Results</h1>
-      <div class="tabs" role="tablist">
-        <button id="tab-session" role="tab" aria-selected="true">This tester</button>
-        <button id="tab-all" role="tab" aria-selected="false">All saved testers</button>
-      </div>
-      <div id="summary"></div>
-      <details>
-        <summary>Every trial</summary>
-        <div class="table-wrap"><table id="raw"></table></div>
-      </details>
-      <div class="actions">
-        <button id="copy-csv" class="primary">Copy as CSV</button>
-        <button id="download-csv">Download CSV</button>
-        <button id="new-tester">New tester</button>
-        <button id="clear-all" class="danger">Delete all saved results</button>
-      </div>
-      <p id="results-msg" class="msg" role="status"></p>
-    </div>
-  </section>
-
   <script src="config.js"></script>
   <script src="spike-config.js"></script>
   <script src="spike.js"></script>
+  <script src="survey.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

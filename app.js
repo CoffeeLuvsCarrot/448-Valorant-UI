@@ -1,11 +1,10 @@
 // HUD reaction test: shows a normal HUD frame, swaps to a warning frame after a
 // random delay, times how long the tester takes to press Space, then asks what
-// they noticed. Results are kept in this browser (localStorage) and export as CSV.
+// they noticed. The last screen shows the results to copy into Google Sheets.
 (() => {
   'use strict';
 
   const CFG = window.HUD_TEST;
-  const STORE_KEY = 'hudReactionResults';
   const VERSIONS = [
     { id: 'before', label: 'Current HUD' },
     { id: 'after', label: 'Redesign' },
@@ -14,19 +13,6 @@
   const $ = id => document.getElementById(id);
   function show(name) {
     document.querySelectorAll('.screen').forEach(s => { s.hidden = s.id !== name; });
-  }
-
-  // ---------- storage ----------
-  function loadAll() {
-    try { return JSON.parse(localStorage.getItem(STORE_KEY)) || []; } catch { return []; }
-  }
-  function saveAll(sessions) {
-    try { localStorage.setItem(STORE_KEY, JSON.stringify(sessions)); return true; } catch { return false; }
-  }
-  function saveSession(session) {
-    const all = loadAll().filter(s => s.id !== session.id);
-    all.push(session);
-    return saveAll(all);
   }
 
   // ---------- setup ----------
@@ -56,8 +42,8 @@
     if (!practice && !picked) { $('setup-msg').textContent = 'Pick version A or B first.'; return; }
     const order = picked ? picked.value : 'A';
 
-    const srcs = problems.flatMap(p => VERSIONS.flatMap(v => [p[v.id].normal, p[v.id].mid, p[v.id].warning].filter(Boolean)))
-      .concat(window.SpikeTest.images());
+    const srcs = problems.flatMap(p => VERSIONS.flatMap(v => [p[v.id].normal, p[v.id].mid, p[v.id].warning, p[v.id].faded].filter(Boolean)))
+      .concat(window.SpikeTest.images(), window.Survey.images());
     $('setup-msg').textContent = 'Loading frames…';
     const missing = await preload(srcs);
     if (missing.length) {
@@ -78,13 +64,7 @@
       queue,
       total: queue.length,
       done: 0,
-      session: {
-        id: Date.now().toString(36),
-        tester: practice ? '(practice)' : `Version ${order}`,
-        order: practice ? '' : order,
-        date: new Date().toISOString(),
-        trials: [],
-      },
+      session: { order, trials: [] },
       falseStarts: 0,
       current: null,
       timer: null,
@@ -95,11 +75,10 @@
   }
 
   $('setup-form').addEventListener('submit', e => { e.preventDefault(); begin(false); });
-  $('practice').addEventListener('click', () => begin(true));
-  $('view-results').addEventListener('click', () => showResults(null));
 
   // ---------- trial flow ----------
   function nextScreen() {
+    if (!run) return; // Esc ended part 1 during a "Too early" / "Missed" message
     if (!run.queue.length) return finish();
     run.phase = 'ready';
     $('next-count').textContent = `${run.practice ? 'Practice · ' : ''}Trial ${run.done + 1} of ${run.total}`;
@@ -132,7 +111,7 @@
   }
 
   function stopTargets() {
-    clearTimeout(run.midTimer);
+    clearTimeout(run.midTimer); clearTimeout(run.fadeTimer);
     clearTimeout(run.targetTimer); clearTimeout(run.targetHide);
     $('target').hidden = true;
     run.target = null;
@@ -157,6 +136,8 @@
     $('frame-warning').hidden = true;
     if (frames.mid) $('frame-mid').src = frames.mid; else $('frame-mid').removeAttribute('src');
     $('frame-mid').hidden = true;
+    if (frames.faded) $('frame-faded').src = frames.faded; else $('frame-faded').removeAttribute('src');
+    $('frame-faded').classList.remove('shown');
     $('flash').hidden = true;
     $('trial-count').textContent = `${run.done + 1} / ${run.total}`;
     show('trial');
@@ -176,6 +157,8 @@
         run.phase = 'warning';
         // No time limit unless timeoutMs is set in config.js
         if (CFG.timeoutMs) run.timer = setTimeout(missed, CFG.timeoutMs);
+        // Redesign glows fade after fadeMs, like in the Figma prototype; the faded frame cross-fades in
+        if (frames.faded) run.fadeTimer = setTimeout(() => { if (run.phase === 'warning') $('frame-faded').classList.add('shown'); }, t.problem.fadeMs || 2000);
         if (frames.mid) run.midTimer = setTimeout(() => { if (run.phase === 'warning') $('frame-warning').hidden = false; }, t.problem.midMs || 2000);
       });
     }, delay);
@@ -212,6 +195,7 @@
   }
 
   function askQuestion() {
+    if (!run) return;
     run.phase = 'question';
     $('q-result').textContent = run.current.missed ? 'No key press recorded' : 'Got it';
     $('answers').innerHTML = CFG.answers.map((a, i) =>
@@ -239,7 +223,6 @@
       targetHits: c.targetHits,
     });
     run.done++;
-    if (!run.practice) saveSession(run.session); // save after every trial so nothing is lost
     nextScreen();
   }
 
@@ -248,7 +231,8 @@
     if (b && run?.phase === 'question') answer(Number(b.dataset.answer));
   });
 
-  // Part 1 done: go on to the spike test (part 2, same version A/B), then the results.
+  // Part 1 done: go on to the spike test (part 2, same version A/B), then the
+  // questionnaire (part 3, skipped in practice), then the results.
   function finish() {
     run.phase = 'done';
     const { practice, order, session: s } = run;
@@ -260,8 +244,10 @@
         return;
       }
       s.spike = spikeRows;
-      saveSession(s);
-      showFinal(s);
+      window.Survey.start(answers => {
+        s.survey = answers;
+        showFinal(s);
+      }, 'Part 3 · ');
     });
   }
 
@@ -282,6 +268,7 @@
       `</tbody><tfoot><tr><td colspan="3">Current: average time / accuracy</td><td>${avg('Current')}</td><td>${acc('Current')}</td></tr>` +
       `<tr><td colspan="3">Redesign: average time / accuracy</td><td>${avg('Redesign')}</td><td>${acc('Redesign')}</td></tr></tfoot>`;
     $('sp-final-table').innerHTML = window.SpikeTest.tableHtml(s.spike || []);
+    $('sv-final-table').innerHTML = window.Survey.tableHtml(s.survey);
     $('final-msg').textContent = '';
     show('final');
   }
@@ -293,6 +280,10 @@
     const text = ['Low HP', 'Ammo', 'Map / Spot Enemy', 'Ability'].map(n =>
       [cell(n, 'Current', 3), cell(n, 'Redesign', 3), cell(n, 'Current', 4), cell(n, 'Redesign', 4)].join('\t')).join('\n');
     try { await navigator.clipboard.writeText(text); $('final-msg').textContent = 'Copied. In the sheet, click the HP row\'s ORIGINAL cell under EFFICIENCY and paste. It fills HP, Ammo, Map and Ability.'; }
+    catch { $('final-msg').textContent = 'Copying was blocked. Select the table and copy it by hand.'; }
+  });
+  $('copy-survey').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(window.Survey.copyText(finalSession.survey)); $('final-msg').textContent = 'Copied: play frequency, the preferred design for HP, Ammo, Ability, Map and Spike, then the comment. Paste it into the tester\'s row.'; }
     catch { $('final-msg').textContent = 'Copying was blocked. Select the table and copy it by hand.'; }
   });
   $('copy-spike').addEventListener('click', async () => {
@@ -329,151 +320,6 @@
     e.preventDefault(); // no text cursor, selection or focus when clicking the screen
     if (document.activeElement) document.activeElement.blur();
     if (e.button === 0 && run && (run.phase === 'waiting' || run.phase === 'warning')) shoot();
-  });
-
-  // ---------- results ----------
-  let resultsView = 'session';
-  let lastSession = null;
-
-  const mean = xs => xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null;
-  const fmtMs = v => v == null ? '–' : `${Math.round(v)} ms`;
-  const fmtPct = v => v == null ? '–' : `${Math.round(v * 100)}%`;
-
-  function stats(trials) {
-    const noticed = trials.filter(t => !t.missed && t.reactionMs != null);
-    return {
-      n: trials.length,
-      rt: mean(noticed.map(t => t.reactionMs)),
-      correct: trials.length ? trials.filter(t => t.correct).length / trials.length : null,
-      missed: trials.filter(t => t.missed).length,
-    };
-  }
-
-  function summaryHtml(trials) {
-    if (!trials.length) return '<p class="lead">No results yet.</p>';
-    const b = stats(trials.filter(t => t.version === 'before'));
-    const a = stats(trials.filter(t => t.version === 'after'));
-    const tile = (val, label) => `<div class="stat"><b>${val}</b><span>${label}</span></div>`;
-    let html = `<div class="big">
-      ${tile(fmtMs(b.rt), 'Average time to notice · current HUD')}
-      ${tile(fmtMs(a.rt), 'Average time to notice · redesign')}
-      ${tile(`${fmtPct(b.correct)} → ${fmtPct(a.correct)}`, 'Noticed the right thing · current → redesign')}
-    </div>`;
-    const rows = CFG.problems.map(p => {
-      const pt = trials.filter(t => t.problem === p.id);
-      if (!pt.length) return '';
-      const sb = stats(pt.filter(t => t.version === 'before'));
-      const sa = stats(pt.filter(t => t.version === 'after'));
-      const diff = sb.rt != null && sa.rt != null ? sa.rt - sb.rt : null;
-      const cls = diff == null ? '' : diff < 0 ? 'better' : 'worse';
-      return `<tr><td>${p.name}</td>
-        <td>${fmtMs(sb.rt)}</td><td>${fmtMs(sa.rt)}</td>
-        <td class="${cls}">${diff == null ? '–' : (diff < 0 ? '' : '+') + Math.round(diff) + ' ms'}</td>
-        <td>${fmtPct(sb.correct)}</td><td>${fmtPct(sa.correct)}</td>
-        <td>${sb.missed} / ${sa.missed}</td></tr>`;
-    }).join('');
-    html += `<div class="table-wrap"><table>
-      <thead><tr><th>Problem</th><th>Time · current</th><th>Time · redesign</th><th>Change</th><th>Correct · current</th><th>Correct · redesign</th><th>Missed (cur / new)</th></tr></thead>
-      <tbody>${rows}</tbody></table></div>
-      <p class="note">Time is the average from the warning appearing to the Space press, for trials where the tester pressed in time. ${CFG.timeoutMs ? `Missed means no press within ${CFG.timeoutMs / 1000} seconds. ` : ''}A negative change means the redesign was noticed faster.</p>`;
-    return html;
-  }
-
-  function rowsFor(sessions) {
-    return sessions.flatMap(s => s.trials.map((t, i) => ({ s, t, i })));
-  }
-
-  function rawHtml(sessions) {
-    const rows = rowsFor(sessions);
-    if (!rows.length) return '';
-    return `<thead><tr><th>Tester</th><th>Order</th><th>#</th><th>Problem</th><th>Version</th><th>Delay</th><th>Time</th><th>Answer</th><th>Correct</th><th>False starts</th><th>Targets hit</th></tr></thead><tbody>` +
-      rows.map(({ s, t, i }) => `<tr><td>${esc(s.tester)}</td><td>${s.order ?? ''}</td><td>${i + 1}</td><td>${t.problemName}</td>
-        <td>${t.version === 'before' ? 'Current' : 'Redesign'}</td><td>${t.delayMs} ms</td>
-        <td>${t.missed ? 'Missed' : t.reactionMs + ' ms'}</td><td>${esc(t.answer)}</td>
-        <td>${t.correct ? 'Yes' : 'No'}</td><td>${t.falseStartsBefore}</td><td>${t.targets == null ? '–' : `${t.targetHits} / ${t.targets}`}</td></tr>`).join('') + '</tbody>';
-  }
-
-  function esc(s) {
-    return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  }
-
-  function currentSessions() {
-    if (resultsView === 'all' || !lastSession) return loadAll();
-    return [lastSession];
-  }
-
-  function renderResults() {
-    const sessions = currentSessions();
-    const trials = sessions.flatMap(s => s.trials);
-    const testers = new Set(sessions.map(s => s.tester)).size;
-    $('results-title').textContent = resultsView === 'all' || !lastSession
-      ? `All saved testers (${testers})`
-      : `Results for ${lastSession.tester}`;
-    $('tab-session').setAttribute('aria-selected', String(resultsView === 'session' && !!lastSession));
-    $('tab-all').setAttribute('aria-selected', String(resultsView === 'all' || !lastSession));
-    $('tab-session').disabled = !lastSession;
-    $('summary').innerHTML = summaryHtml(trials);
-    $('raw').innerHTML = rawHtml(sessions);
-    $('results-msg').textContent = '';
-  }
-
-  function showResults(session) {
-    lastSession = session;
-    resultsView = session ? 'session' : 'all';
-    renderResults();
-    show('results');
-  }
-
-  $('tab-session').addEventListener('click', () => { resultsView = 'session'; renderResults(); });
-  $('tab-all').addEventListener('click', () => { resultsView = 'all'; renderResults(); });
-  $('new-tester').addEventListener('click', () => {
-    document.querySelectorAll('input[name="order"]').forEach(r => { r.checked = false; });
-    $('setup-msg').textContent = '';
-    show('setup');
-  });
-
-  function csv() {
-    const head = ['tester', 'order', 'date', 'trial', 'problem', 'version', 'delay_ms', 'reaction_ms', 'missed', 'answer', 'correct', 'false_starts_before', 'targets_shown', 'targets_hit'];
-    const q = v => /[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v);
-    const lines = rowsFor(currentSessions()).map(({ s, t, i }) => [
-      s.tester, s.order ?? '', s.date, i + 1, t.problemName, t.version === 'before' ? 'current' : 'redesign',
-      t.delayMs, t.reactionMs ?? '', t.missed, t.answer, t.correct, t.falseStartsBefore, t.targets ?? '', t.targetHits ?? '',
-    ].map(q).join(','));
-    return [head.join(','), ...lines].join('\n');
-  }
-
-  $('copy-csv').addEventListener('click', async () => {
-    try {
-      await navigator.clipboard.writeText(csv());
-      $('results-msg').textContent = 'Copied. Paste it into Google Sheets or Excel.';
-    } catch {
-      $('results-msg').textContent = 'Copying was blocked by the browser. Use Download CSV instead.';
-    }
-  });
-
-  $('download-csv').addEventListener('click', () => {
-    const blob = new Blob([csv()], { type: 'text/csv' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `hud-reaction-results-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  });
-
-  let confirmClear = false;
-  $('clear-all').addEventListener('click', () => {
-    if (!confirmClear) {
-      confirmClear = true;
-      $('clear-all').textContent = 'Click again to delete everything';
-      setTimeout(() => { confirmClear = false; $('clear-all').textContent = 'Delete all saved results'; }, 4000);
-      return;
-    }
-    confirmClear = false;
-    $('clear-all').textContent = 'Delete all saved results';
-    saveAll([]);
-    lastSession = null;
-    renderResults();
-    $('results-msg').textContent = 'All saved results were deleted.';
   });
 
   show('setup');

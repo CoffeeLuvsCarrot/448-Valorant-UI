@@ -8,7 +8,7 @@
 // A defuse takes 7 seconds (3.5 with a kit).
 
 window.SPIKE_TEST = {
-  // Time limit to decide (milliseconds). 0 = no time limit, the screenshot stays until F or J.
+  // Time limit to decide (milliseconds). 0 = no time limit, the screenshot stays until Space is pressed.
   timeoutMs: 0,
   // Blank pause before each screenshot appears (milliseconds)
   fixationMs: 800,
